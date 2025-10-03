@@ -38,14 +38,29 @@ fn create_todo(title: String){
             println!("Nouvelle tâche ajoutée !");
         }
     }
+}
 
+fn change_state(todo_id: u32){
+    let data = fs::read_to_string("./src/todo.json").unwrap();
+    let mut todos: Vec<Todo> = serde_json::from_str(&data).unwrap();
+    if let Some(todo) = todos.iter_mut().find(|t| t.id == todo_id) {
+        todo.done = !todo.done;
+        println!("{}", todo.done);
+    } else {
+        println!("L'ID n'existe pas")
+    }
+    fs::write("./src/todo.json", serde_json::to_string_pretty(&todos).unwrap()).unwrap();
+}
 
-
+fn get_todos(){
+    let data = fs::read_to_string("./src/todo.json").unwrap();
+    let todos: Vec<Todo> = serde_json::from_str(&data).unwrap();
+    for todo in todos{
+        println!("id: {} | tâche: {} | état:{}", todo.id, todo.title, todo.done)
+    }
 }
 
 fn main(){
-    initialize_json();
-    create_todo(String::from("Faire à manger"));
-    create_todo(String::from("Faire les courses"));
-    create_todo(String::from("Faire du sport"));
+    change_state(1);
+    get_todos();
 }
