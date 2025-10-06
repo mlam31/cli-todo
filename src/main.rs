@@ -1,6 +1,7 @@
-use std::{fs};
+use std::{fs, u32};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
+use std::io::{self, Write};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Todo {
@@ -9,6 +10,8 @@ struct Todo {
     done: bool,
 }
 
+// Commandes: add tache, list, rm id, change_state id
+
 fn initialize_json() {
     let data = fs::read_to_string("./src/todo.json").unwrap();
     if data.trim().is_empty() {
@@ -16,7 +19,7 @@ fn initialize_json() {
     }
 }
 
-fn create_todo(title: String){
+fn add_todo(title: String){
     let data = fs::read_to_string("./src/todo.json").unwrap();
     let json: Value = serde_json::from_str(&data).unwrap();
 
@@ -45,9 +48,6 @@ fn change_state(todo_id: u32){
     let mut todos: Vec<Todo> = serde_json::from_str(&data).unwrap();
     if let Some(todo) = todos.iter_mut().find(|t| t.id == todo_id) {
         todo.done = !todo.done;
-        println!("{}", todo.done);
-    } else {
-        println!("L'ID n'existe pas")
     }
     fs::write("./src/todo.json", serde_json::to_string_pretty(&todos).unwrap()).unwrap();
 }
@@ -60,7 +60,46 @@ fn get_todos(){
     }
 }
 
+fn remove_todo(todo_id: u32){
+    let data = fs::read_to_string("./src/todo.json").unwrap();
+    let mut todos: Vec<Todo> = serde_json::from_str(&data).unwrap();
+    if let Some(pos) = todos.iter().position(|t| t.id == todo_id) {
+        todos.remove(pos);
+    }
+    fs::write("./src/todo.json", serde_json::to_string_pretty(&todos).unwrap()).unwrap();
+}
+
 fn main(){
-    change_state(1);
-    get_todos();
+    initialize_json();
+    loop {
+        println!(" \n Commande (add <tache>, list, rm <id>, change_state <id>, exit): ");
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
+
+        match input {
+            "exit" => break,
+            "list" => get_todos(),
+            _ if input.starts_with("add ") => {
+                let title = input[4..].trim().to_string();
+                add_todo(title);
+            }
+            _ if input.starts_with("rm ") => {
+                if let Ok(id) = input[3..].trim().parse::<u32>(){
+                    remove_todo(id);
+                } else {
+                    println!("Invalid ID");
+                }
+            }
+            _ if input.starts_with("change_state ") => {
+                if let Ok(id) = input[13..].trim().parse::<u32>() {
+                    change_state(id);
+                } else {
+                    println!("Invalid ID");
+                }
+            }
+            _ => println!("Commande non reconnue"),
+        }
+    }
 }
